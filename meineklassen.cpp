@@ -21,6 +21,8 @@ IPAddress server_addr(192,168,0,35);  // IP of the MySQL *server* here
 char user[] = "esp";              // MySQL user login username
 char passwordd[] = "password";        // MySQL user login password
 
+#include <ESP8266WebServer.h>
+ESP8266WebServer server(80);
 
 WiFiUDP ntpUDP;
 NTPClient timeClient(ntpUDP, "europe.pool.ntp.org", 7200, 60000);
@@ -458,6 +460,53 @@ Adafruit_NeoMatrix matrix = Adafruit_NeoMatrix(8, 8, 5, 1, PIN,
       }
       return xx;
     }
+    String meineklassen::MyDB::List(String fil) {
+        int yy = 0;
+      if (conn.connected()) {
+        row_values *row = NULL;
+        long Anzahl = 0;
+        String name;
+/**        sprintf(COUNT_SQL, "SELECT COUNT(name) AS Anzahl FROM esp.%s;", fil.c_str());
+        Serial.println(COUNT_SQL);
+          MySQL_Cursor *cur_mem = new MySQL_Cursor(&conn);
+          cur_mem->execute(COUNT_SQL);
+          // Fetch the columns (required) but we don't use them.
+          column_names *columns = cur_mem->get_columns();
+          // Read the row (we are only expecting the one)
+          do {
+            row = cur_mem->get_next_row();
+            if (row != NULL) {
+              Anzahl = atol(row->values[0]);
+            }
+          } while (row != NULL);
+          // Deleting the cursor also frees up memory used
+          delete cur_mem;
+          // Show the result
+        Serial.println("Anzahl Chatter");
+        Serial.println(Anzahl);
+**/
+        sprintf(COUNT_SQL, "SELECT * FROM esp.%s;", fil.c_str());
+        Serial.println(COUNT_SQL);
+          MySQL_Cursor *cur_mem = new MySQL_Cursor(&conn);
+          cur_mem->execute(COUNT_SQL);
+          // Fetch the columns (required) but we don't use them.
+          column_names *columns = cur_mem->get_columns();
+          // Read the row (we are only expecting the one)
+          do {
+            row = cur_mem->get_next_row();
+            if (row != NULL) {
+              name += String(row->values[1]) + "  (";
+              name += String(row->values[2]) + ")<br />";
+            }
+          } while (row != NULL);
+          // Deleting the cursor also frees up memory used
+          delete cur_mem;
+          // Show the result
+          Serial.println(name);
+
+          return name;
+      }
+    }
     void meineklassen::MyDB::Reset(String fil) {
       if (conn.connected()) {
         sprintf(TRUNC_SQL, "TRUNCATE TABLE esp.%s;", fil.c_str());
@@ -466,7 +515,113 @@ Adafruit_NeoMatrix matrix = Adafruit_NeoMatrix(8, 8, 5, 1, PIN,
         Serial.println("Chatter reset");
       }
     }
+    void meineklassen::MyWebserver::Start() {
+      server.on("/", MyWebserver::handleRoot);
+//      server.onNotFound(handleNotFound);
+      server.begin();
+      Serial.println("HTTP server started");
 
+    }
+    void meineklassen::MyWebserver::hc() {
+      server.handleClient();
+
+    }
+ void meineklassen::MyWebserver::handleRoot() {
+  Serial.println(ESP.getFreeHeap());
+  String message = "<!DOCTYPE html>\
+<html>\
+  <head>\
+    <meta charset='utf-8' />\
+    <style>\
+    body {\
+      width: 100%;\
+      height: 100%;\
+      background: #000;\
+      overflow: hidden;\
+    }\
+    .fade {\
+      position: relative;\
+      width: 100%;\
+      min-height: 60vh;\
+      top: -25px;\
+      background-image: linear-gradient(0deg, transparent, black 75%);\
+      z-index: 1;\
+    }\
+    .star-wars {\
+      display: flex;\
+      justify-content: center;\
+      position: relative;\
+      height: 800px;\
+      color: #feda4a;\
+      font-family: 'Pathway Gothic One', sans-serif;\
+      font-size: 300%;\
+      font-weight: 300;\
+      letter-spacing: 2px;\
+      line-height: 150%;\
+      perspective: 1000px;\
+      text-align: justify;\
+    }\
+    .crawl {\
+      position: relative;\
+      top: 9999px;\
+      transform-origin: 50% 100%;\
+      animation: crawl 60s linear;\
+    }\
+    .crawl > .title {\
+      font-size: 90%;\
+      text-align: center;\
+    }\
+    .crawl > .title h1 {\
+      margin: 0 0 100px;\
+      text-transform: uppercase;\
+    }\
+    @keyframes crawl {\
+      0% {\
+        top: 0;\
+        transform: rotateX(20deg)  translateZ(0);\
+      }\
+      100% { \
+        top: -6000px;\
+        transform: rotateX(25deg) translateZ(-2500px);\
+      }\
+    }\
+    </style>\
+  </head>\
+  <body>\
+  <div class='fade'></div>\
+<section class='star-wars'>\
+<div class='crawl'>\
+<div class='title'>\
+  <h1>Sub-Gifter</h1>\
+</div><p>";
+message += meineklassen::MyDBInstance.List("subgift");
+message += "</p>      \
+<div class='title'>\
+  <h1>Subs</h1>\
+</div><p>";
+message += meineklassen::MyDBInstance.List("subs");
+message += "</p>      \
+<div class='title'>\
+  <h1>Bits</h1>\
+</div><p>";
+message += meineklassen::MyDBInstance.List("bits");
+message += "</p>      \
+<div class='title'>\
+  <h1>Chatter</h1>\
+</div><p>";
+message += meineklassen::MyDBInstance.List("chatter");
+message += "</p>      \
+</div>\
+</section>\
+  </body>\
+</html>\
+";
+
+  //message += "Welt";
+  Serial.println(ESP.getFreeHeap());
+  server.send(200, "text/html; charset=UTF-8", message);
+  Serial.println(ESP.getFreeHeap());
+}
     MyWlan MyWlanInstance;           /* Für die Klassen instance */
     MyNTP MyNTPInstance;
     My MyInstance;
@@ -474,4 +629,5 @@ Adafruit_NeoMatrix matrix = Adafruit_NeoMatrix(8, 8, 5, 1, PIN,
     MyVote MyVoteInstance;
     MyGiveaway MyGiveawayInstance;
     MyLED MyLEDInstance;
+    MyWebserver MyWebserverInstance;
   }

@@ -14,6 +14,7 @@
 #include <WString.h>                /* Würde ich immer mit in die .h eintragen */
 
 
+
 namespace meineklassen
 {
     class MyWlan;             /* Interne Klasse Definieren */
@@ -37,6 +38,8 @@ namespace meineklassen
     class MyLED;
     extern MyLED  MyLEDInstance;
 
+    class MyWebserver;
+    extern MyWebserver MyWebserverInstance;
 
     //const TestText = "Hallo vom Test";  /* Muss eine const sein, wenn du die GlobalVariables mehrfach includes */
 
@@ -72,10 +75,12 @@ class meineklassen::MyDB
       void Verbinden();
       int Writelog(String typ, String fil, String way, unsigned int z);
       void Reset(String fil);
+      String List(String fil);
        char INSERT_SQL[200];
        char SELECT_SQL[200];
        char UPDATE_SQL[200];
        char TRUNC_SQL[50];
+       char COUNT_SQL[50];
 
 };
 
@@ -116,5 +121,16 @@ class meineklassen::MyLED
     void Zeitanzeige();
     void Start();
 };
+
+class meineklassen::MyWebserver
+{
+    public:
+
+        //ESP8266WebServer server =  ESP8266WebServerTemplate.ESP8266WebServerTemplate(80);
+    void Start();
+    static void handleRoot();
+    void hc();
+};
+
 
 using namespace meineklassen;             /* Damit die Klasse angesprochen wird, sobald du die .h includest */

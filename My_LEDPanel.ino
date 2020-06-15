@@ -19,6 +19,7 @@ void setup() {
   meineklassen::MyNTPInstance.Initiieren();
   meineklassen::MyLEDInstance.Start();
   meineklassen::MyDBInstance.Verbinden();
+  meineklassen::MyWebserverInstance.Start();
   //Connect to twitch via websockets
   twitch_api.connect_to_twitch_websocket();
   //Register custom callbacks
@@ -32,6 +33,7 @@ void setup() {
 }
 
 void loop() {
+    meineklassen::MyWebserverInstance.hc();
   meineklassen::MyNTPInstance.Updaten();
   meineklassen::MyLEDInstance.Zeitanzeige();
   if (twitch_api.available()) {
@@ -96,7 +98,7 @@ void onPrivMsgCallback(PrivMsg data) {
   displayname.trim();
 
   if (meineklassen::MyDBInstance.Writelog("chatter", displayname, "add", 1) == 1) {
-    String ausgabe = "Hallo @" + displayname + "!!!";
+    String ausgabe = "Hallo " + displayname + "!!!";
     twitch_api.send_chat_message(meineklassen::MyInstance.string2char(ausgabe));
     meineklassen::MyLEDInstance.LEDLauftext(0, ausgabe, 30, 1, 30);
   };
@@ -156,6 +158,9 @@ void onPrivMsgCallback(PrivMsg data) {
   }
   else if (text.substring(0, 13).equals("!resetchatter") && displayname.substring(0, 9).equals("bajoraner")) {
     meineklassen::MyDBInstance.Reset("chatter");
+  }
+  else if (text.substring(0, 12).equals("!listchatter") && displayname.substring(0, 9).equals("bajoraner")) {
+    meineklassen::MyDBInstance.List("chatter");
   }
   else if (text.substring(0, 1).equals("1") && meineklassen::MyVoteInstance.voteactive == 1) {
     meineklassen::MyVoteInstance.Voten(1, displayname);
