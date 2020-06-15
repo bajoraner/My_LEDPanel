@@ -18,11 +18,17 @@ void setup() {
   meineklassen::MyWlanInstance.Verbinden();
   meineklassen::MyNTPInstance.Initiieren();
   meineklassen::MyLEDInstance.Start();
+  meineklassen::MyDBInstance.Verbinden();
   //Connect to twitch via websockets
   twitch_api.connect_to_twitch_websocket();
   //Register custom callbacks
   twitch_api.onCustomReward(onCustomRewardCallback);
   twitch_api.onPrivMsg(onPrivMsgCallback);
+  twitch_api.onBits(onBitsCallback);
+  twitch_api.onSub(onSubCallback);
+  twitch_api.onReSub(onReSubCallback);
+  twitch_api.onSubGift(onSubGiftCallback);
+
 }
 
 void loop() {
@@ -87,6 +93,14 @@ void onPrivMsgCallback(PrivMsg data) {
   String text = String(data.message);
   text.toLowerCase();
   String displayname = String(data.display_name);
+  displayname.trim();
+
+  if (meineklassen::MyDBInstance.Writelog("chatter", displayname, "add", 1) == 1) {
+    String ausgabe = "Hallo @" + displayname + "!!!";
+    twitch_api.send_chat_message(meineklassen::MyInstance.string2char(ausgabe));
+    meineklassen::MyLEDInstance.LEDLauftext(0, ausgabe, 30, 1, 30);
+  };
+
 
   if (text.substring(0, 5).equals("!code")) {
     String ausgabe = "-CODE-";
@@ -140,6 +154,9 @@ void onPrivMsgCallback(PrivMsg data) {
     meineklassen::MyVoteInstance.Resetten();
     Serial.println(meineklassen::MyVoteInstance.voteactive);
   }
+  else if (text.substring(0, 13).equals("!resetchatter") && displayname.substring(0, 9).equals("bajoraner")) {
+    meineklassen::MyDBInstance.Reset("chatter");
+  }
   else if (text.substring(0, 1).equals("1") && meineklassen::MyVoteInstance.voteactive == 1) {
     meineklassen::MyVoteInstance.Voten(1, displayname);
     String ausgabe = "Vote 1";
@@ -168,11 +185,11 @@ void onPrivMsgCallback(PrivMsg data) {
 
 
   /*
-     Textfarbe (2)
-     Text
-     Helligkeit
-     data.display_name
-     data.message
+  Textfarbe (2)
+  Text
+  Helligkeit
+  data.display_name
+  data.message
   */
   //meineklassen::MyInstance.ChatAusgabe(2, "Text", 20, data.display_name, data.message);
 
@@ -185,5 +202,76 @@ void onPrivMsgCallback(PrivMsg data) {
   //Serial.println(meineklassen::MyInstance.doppelte);
   Serial.println("####################################################################");
   Serial.println("####################################################################");
+
+}
+
+void onBitsCallback(PrivMsg data) {
+  printf("\n---------------------------------------------------\n");
+  printf("\n=BITS=\n");
+  printf("Bit Donater Name: %s\nBits: %i\n", data.display_name, data.bits);
+  printf("\n---------------------------------------------------\n");
+
+  String displayname = String(data.display_name);
+  displayname.trim();
+  int x = meineklassen::MyDBInstance.Writelog("bits", displayname, "add", data.bits);
+  String ausgabe = "@" + displayname + " vielen Dank fuer deine " + String(data.bits) + "Bits...";
+  twitch_api.send_chat_message(meineklassen::MyInstance.string2char(ausgabe));
+  meineklassen::MyLEDInstance.LEDLauftext(0, ausgabe, 30, 1, 30);
+}
+
+void onSubCallback(UserNotice data) {
+  printf("\n---------------------------------------------------\n");
+  printf("\n=SUB=\n");
+  printf("Subscribers Name: %s\nTotal Months Subbed: %i\nSub Streak: %i\nSub Type: %i\nSub Plan Name: %s\nShare Sub Streak: %i\n",
+  data.display_name, data.msg_param_cumulative_months, data.msg_param_streak_months, data.msg_param_sub_plan, data.msg_param_sub_plan_name, data.msg_param_should_share_streak);
+  printf("\n---------------------------------------------------\n");
+
+  String displayname = String(data.display_name);
+  displayname.trim();
+  int x = meineklassen::MyDBInstance.Writelog("subs", displayname, "same", data.msg_param_cumulative_months);
+  String ausgabe = "@" + displayname + " vielen Dank fuer deinen Sub (" + String(data.msg_param_cumulative_months) + ")...";
+  twitch_api.send_chat_message(meineklassen::MyInstance.string2char(ausgabe));
+  meineklassen::MyLEDInstance.LEDLauftext(0, ausgabe, 30, 1, 30);
+
+}
+void onReSubCallback(UserNotice data) {
+  printf("\n---------------------------------------------------\n");
+  printf("\n=RESUB=\n");
+  printf("Subscribers Name: %s\nTotal Months Subbed: %i\nSub Streak: %i\nSub Type: %i\nSub Plan Name: %s\nShare Sub Streak: %i\n",
+  data.display_name, data.msg_param_cumulative_months, data.msg_param_streak_months, data.msg_param_sub_plan, data.msg_param_sub_plan_name, data.msg_param_should_share_streak);
+  if (!String(data.message).equals("")) {
+    printf(data.message);
+  }
+  printf("\n---------------------------------------------------\n");
+
+  String displayname = String(data.display_name);
+  displayname.trim();
+  int x = meineklassen::MyDBInstance.Writelog("subs", displayname, "same", data.msg_param_cumulative_months);
+  String ausgabe = "@" + displayname + " vielen Dank fuer deinen ReSub im " + String(data.msg_param_cumulative_months) + ". Monat...";
+  twitch_api.send_chat_message(meineklassen::MyInstance.string2char(ausgabe));
+  meineklassen::MyLEDInstance.LEDLauftext(0, ausgabe, 30, 1, 30);
+
+
+}
+void onSubGiftCallback(UserNotice data) {
+  printf("\n---------------------------------------------------\n");
+  printf("\n=SUB GIFT=\n");
+  printf("Gifters Name: %s\nTotal Months Subbed: %i\nRecipient Display Name: %s\nRecipient User Id: %i\nRecipient Username: %s\nSub Plan:%i\nSub Plan Name: %s\n",
+  data.display_name, data.msg_param_months, data.msg_param_recipient_display_name, data.msg_param_recipient_id, data.msg_param_recipient_user_name, data.msg_param_sub_plan, data.msg_param_sub_plan_name);
+  printf("\n---------------------------------------------------\n");
+
+  String displayname = String(data.display_name);
+  displayname.trim();
+  int x = meineklassen::MyDBInstance.Writelog("subgift", displayname, "add", 1);
+
+  String displaynameto = String(data.display_name);
+  displaynameto.trim();
+  int xx = meineklassen::MyDBInstance.Writelog("subs", displaynameto, "same", data.msg_param_months);
+  String ausgabe = "@" + displayname + " vielen Dank fuer deinen Geschenk-Sub an " + String(data.msg_param_recipient_display_name) + " (" + String(data.msg_param_months) + ")...";
+  twitch_api.send_chat_message(meineklassen::MyInstance.string2char(ausgabe));
+  meineklassen::MyLEDInstance.LEDLauftext(0, ausgabe, 30, 1, 30);
+
+
+
 
 }
